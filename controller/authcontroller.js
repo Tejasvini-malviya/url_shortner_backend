@@ -1,5 +1,5 @@
 const User = require("../models/users");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const {
   validateEmail,
@@ -9,6 +9,15 @@ const {
 
 exports.signup = async (req, res) => {
   try {
+    // Check if JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not configured!");
+      return res.status(500).json({
+        status: 500,
+        message: "Server configuration error - JWT_SECRET missing",
+      });
+    }
+
     const { email, password } = req.body;
 
     // Validate required fields
@@ -80,6 +89,15 @@ exports.signup = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
+    // Check if JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not configured!");
+      return res.status(500).json({
+        status: 500,
+        message: "Server configuration error - JWT_SECRET missing",
+      });
+    }
+
     const { email, password } = req.body;
 
     // Validate required fields
@@ -134,9 +152,12 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
+    console.error("Error details:", error.message);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       status: 500,
       message: "Login failed",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };

@@ -1,5 +1,16 @@
 const express = require("express");
+const cors = require("cors");
 const app = express();
+
+// CORS configuration
+app.use(
+  cors({
+    origin: "*", // Allow all origins (you can restrict this to specific domains later)
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 // Body parsers
 app.use(express.json());
@@ -21,4 +32,3 @@ app.get("/", (req, res) => {
 });
 
 module.exports = app;
-
