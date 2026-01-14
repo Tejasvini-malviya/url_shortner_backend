@@ -18,7 +18,12 @@ exports.signup = async (req, res) => {
       });
     }
 
-    const { email, password } = req.body;
+    let { email, password, confirmPassword } = req.body;
+
+    // Normalize email to lowercase
+    if (email) {
+      email = email.toLowerCase().trim();
+    }
 
     // Validate required fields
     if (!validateRequiredFields(email, password)) {
@@ -44,19 +49,18 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const userExists = await User.findOne({ where: { email } });
-    if (userExists) {
-      return res.status(409).json({
-        status: 409,
-        message: "User already exists",
+    // Validate password confirmation
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({
+        status: 400,
+        message: "Passwords do not match",
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password (cost factor 12 for better security)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user (DB unique constraint handles race conditions)
     const newUser = await User.create({
       email,
       password: hashedPassword,
@@ -80,6 +84,15 @@ exports.signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Signup error:", error);
+    
+    // Handle Sequelize unique constraint violation
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        status: 409,
+        message: "User already exists",
+      });
+    }
+    
     res.status(500).json({
       status: 500,
       message: "Signup failed",
@@ -98,7 +111,12 @@ exports.login = async (req, res) => {
       });
     }
 
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+
+    // Normalize email to lowercase
+    if (email) {
+      email = email.toLowerCase().trim();
+    }
 
     // Validate required fields
     if (!validateRequiredFields(email, password)) {
@@ -145,15 +163,10 @@ exports.login = async (req, res) => {
     res.status(200).json({
       status: 200,
       message: "Login successful",
-      user: {
-        email: user.email,
-      },
       token,
     });
   } catch (error) {
     console.error("Login error:", error);
-    console.error("Error details:", error.message);
-    console.error("Error stack:", error.stack);
     res.status(500).json({
       status: 500,
       message: "Login failed",
